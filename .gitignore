@@ -34,3 +34,19 @@ Thumbs.db
 .vscode/
 *.suo
 *.user
+
+                 LOCAL EDUCATION
+                       │
+        ┌──────────────┼──────────────┐
+        │              │              │
+     TEACHERS       STUDENTS          AI
+        │              │              │
+        ▼              ▼              ▼
+     Profiles       Learning       Personalization
+     Availability   Goals          Memory
+     Classes        Progress       Recommendations
+     Assignments    Practice       AI Tutor
+        │              │              │
+        └──────────────┼──────────────┘
+                       ▼
+              COLLABORATIVE LEARNING
