@@ -1,0 +1,232 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   // "STUDENT" | "TEACHER" | "ADMIN"
+  avatar       String?
+  phone        String?
+  city         String   @default("Bengaluru")
+  locality     String   @default("Indiranagar")
+  pincode      String   @default("560038")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  teacherProfile TeacherProfile?
+  studentProfile StudentProfile?
+  
+  sentMessages     Message[]      @relation("SentMessages")
+  receivedMessages Message[]      @relation("ReceivedMessages")
+  notifications    Notification[]
+  aiMemories       AIMemory[]
+  communityPosts   CommunityPost[]
+}
+
+model TeacherProfile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio                String
+  experienceYears    Int      @default(3)
+  education          String
+  verificationStatus String   @default("VERIFIED") // "PENDING" | "VERIFIED" | "REJECTED"
+  teachingMode       String   @default("HYBRID")   // "OFFLINE" | "ONLINE" | "HYBRID"
+  hourlyRate         Float    @default(400)
+  monthlyRate        Float    @default(3500)
+  locality           String   @default("Indiranagar")
+  city               String   @default("Bengaluru")
+  pincode            String   @default("560038")
+  lat                Float    @default(12.9784)
+  lng                Float    @default(77.6408)
+  rating             Float    @default(4.9)
+  totalStudents      Int      @default(18)
+  subjects           String   // JSON string or comma separated subjects
+  gradesTaught       String   // JSON string of grades e.g. ["8","9","10"]
+
+  availabilities     Availability[]
+  bookings           Booking[]
+  classrooms         Classroom[]
+  assignments        Assignment[]
+  reviews            Review[]
+}
+
+model StudentProfile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grade              String   @default("Class 10")
+  school             String   @default("National Public School")
+  locality           String   @default("Indiranagar")
+  city               String   @default("Bengaluru")
+  learningGoals      String   @default("Board Exam Prep & Concept Clarity")
+  preferredLanguage  String   @default("English & Hindi")
+  preferredMode      String   @default("HYBRID")
+  preferredStudyTime String   @default("Evening (5 PM - 8 PM)")
+
+  bookings           Booking[]
+  memberships        ClassroomMember[]
+  submissions        Submission[]
+  reviews            Review[]
+  progress           LearningProgress[]
+}
+
+model Booking {
+  id        String   @id @default(uuid())
+  studentId String
+  teacherId String
+  subject   String
+  date      String   // YYYY-MM-DD
+  timeSlot  String   // e.g. "04:00 PM - 05:00 PM"
+  status    String   @default("PENDING") // "PENDING" | "CONFIRMED" | "REJECTED" | "CANCELLED" | "COMPLETED"
+  mode      String   @default("OFFLINE")
+  fee       Float
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
+model Availability {
+  id        String         @id @default(uuid())
+  teacherId String
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  dayOfWeek String         // "Monday", "Tuesday", etc.
+  startTime String         // "04:00 PM"
+  endTime   String         // "06:00 PM"
+  isBooked  Boolean        @default(false)
+}
+
+model Classroom {
+  id          String   @id @default(uuid())
+  teacherId   String
+  teacher     TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  name        String   // e.g. "Class 10 Mathematics - Batch Alpha"
+  subject     String
+  grade       String
+  batchName   String
+  schedule    String   // e.g. "Mon, Wed, Fri at 5:00 PM"
+  capacity    Int      @default(15)
+  createdAt   DateTime @default(now())
+
+  members     ClassroomMember[]
+  assignments Assignment[]
+}
+
+model ClassroomMember {
+  id          String    @id @default(uuid())
+  classroomId String
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  joinedAt    DateTime  @default(now())
+}
+
+model Assignment {
+  id          String    @id @default(uuid())
+  classroomId String
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  teacherId   String
+  teacher     TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  subject     String
+  dueDate     String
+  totalPoints Int       @default(100)
+  createdAt   DateTime  @default(now())
+
+  submissions Submission[]
+}
+
+model Submission {
+  id           String     @id @default(uuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  content      String
+  fileUrl      String?
+  score        Float?
+  feedback     String?
+  submittedAt  DateTime   @default(now())
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  senderId       String
+  sender         User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId     String
+  receiver       User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  content        String
+  fileUrl        String?
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId String
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  rating    Float
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // "BOOKING" | "MESSAGE" | "ASSIGNMENT" | "SYSTEM" | "AI"
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+model AIMemory {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memoryType String   // "preference" | "weakness" | "strength" | "goal" | "habit" | "context"
+  content    String
+  importance String   @default("medium") // "low" | "medium" | "high"
+  source     String   @default("ai_chat")
+  createdAt  DateTime @default(now())
+}
+
+model LearningProgress {
+  id                String         @id @default(uuid())
+  studentId         String
+  student           StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject           String
+  topic             String
+  completionPercent Int            @default(0)
+  weakOrStrong      String         @default("NEUTRAL") // "WEAK" | "STRONG" | "NEUTRAL"
+  updatedAt         DateTime       @updatedAt
+}
+
+model CommunityPost {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  content      String
+  category     String   @default("General") // "Doubt" | "Resource" | "Study Group" | "Announcement"
+  likes        Int      @default(0)
+  repliesCount Int      @default(0)
+  createdAt    DateTime @default(now())
+}
